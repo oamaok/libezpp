@@ -15,7 +15,7 @@ export {
   SpinnerObject,
   HoldObject,
   HitObject,
-} from './parse'
+} from './types'
 import { parse } from './parse'
 
 const ezpp = {

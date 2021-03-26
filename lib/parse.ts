@@ -1,123 +1,14 @@
+import {
+  General,
+  Metadata,
+  Difficulty,
+  BeatmapBase,
+  Beatmap,
+  TimingPoint,
+  SliderCurve,
+  HitObject,
+} from './types'
 import { Vec2 } from './vec2'
-
-type General = {
-  audioFilename: string
-  audioLeadIn: number
-  previewTime: number
-  countdown: number
-  sampleSet: string
-  stackLeniency: number
-  mode: number
-  letterboxInBreaks: boolean
-  useSkinSprites: boolean
-  overlayPosition: string
-  skinPreference: string
-  epilepsyWarning: boolean
-  countdownOffset: number
-  specialStyle: boolean
-  widescreenStoryboard: boolean
-  samplesMatchPlaybackRate: boolean
-}
-
-type Metadata = {
-  title: string
-  titleUnicode: string
-  artist: string
-  artistUnicode: string
-  creator: string
-  version: string
-  source: string
-  tags: string
-  id: number
-  setId: number
-}
-
-type Difficulty = {
-  hp: number
-  cs: number
-  od: number
-  ar: number
-  sliderMultiplier: number
-  sliderTickRate: number
-}
-
-type BeatmapBase = {
-  version: number
-  general: General
-  metadata: Metadata
-  difficulty: Difficulty
-  timingPoints: TimingPoint[]
-  hitObjects: HitObject[]
-}
-
-type OsuBeatmap = {
-  mode: 'osu'
-} & BeatmapBase
-
-type TaikoBeatmap = {
-  mode: 'taiko'
-} & BeatmapBase
-
-type ManiaBeatmap = {
-  mode: 'mania'
-} & BeatmapBase
-
-type CatchBeatmap = {
-  mode: 'catch'
-} & BeatmapBase
-
-type Beatmap = OsuBeatmap | TaikoBeatmap | ManiaBeatmap | CatchBeatmap
-
-type TimingPoint = {
-  time: number
-  beatLength: number
-  meter: number
-  sampleSet: number
-  sampleIndex: number
-  volume: number
-  uninherited: boolean
-  effects: number
-}
-
-type CircleObject = {
-  type: 'circle'
-  position: Vec2
-  time: number
-  hitSample: string
-}
-
-type SliderCurve = {
-  type: 'B' | 'C' | 'L' | 'P'
-  points: Vec2[]
-  slides: number
-  length: number
-  edgeSounds: number[]
-  edgeSets: string[]
-}
-
-type SliderObject = {
-  type: 'slider'
-  position: Vec2
-  time: number
-  curve: SliderCurve
-  hitSample: string
-}
-
-type SpinnerObject = {
-  type: 'spinner'
-  position: Vec2
-  hitSample: string
-  time: number
-  endTime: number
-}
-
-type HoldObject = {
-  type: 'hold'
-  position: Vec2
-  time: number
-}
-
-type HitObject = CircleObject | SliderObject | SpinnerObject | HoldObject
 
 const CIRCLE_OBJECT_BIT = 1 << 0
 const SLIDER_OBJECT_BIT = 1 << 1
@@ -227,7 +118,7 @@ const parseKeyValuePair = (line: string): [string, string] => {
   return [key.trim(), value.trim()]
 }
 
-type KeyMap<T> = Record<
+type SectionKeyMap<T> = Record<
   string,
   {
     [K in keyof T]: {
@@ -237,11 +128,12 @@ type KeyMap<T> = Record<
         : T[K] extends number
         ? 'integer' | 'decimal'
         : 'boolean'
+      default?: T[K]
     }
   }[keyof T]
 >
 
-const GENERAL_KEY_MAP: KeyMap<General> = {
+const GENERAL_KEY_MAP: SectionKeyMap<General> = {
   AudioFilename: { key: 'audioFilename', type: 'string' },
   AudioLeadIn: { key: 'audioLeadIn', type: 'integer' },
   PreviewTime: { key: 'previewTime', type: 'integer' },
@@ -263,16 +155,16 @@ const GENERAL_KEY_MAP: KeyMap<General> = {
   },
 }
 
-const DIFFICULTY_KEY_MAP: KeyMap<Difficulty> = {
-  HPDrainRate: { key: 'hp', type: 'decimal' },
-  CircleSize: { key: 'hp', type: 'decimal' },
-  OverallDifficulty: { key: 'hp', type: 'decimal' },
-  ApproachRate: { key: 'hp', type: 'decimal' },
-  SliderMultiplier: { key: 'hp', type: 'decimal' },
-  SliderTickRate: { key: 'hp', type: 'decimal' },
+const DIFFICULTY_KEY_MAP: SectionKeyMap<Difficulty> = {
+  HPDrainRate: { key: 'hp', type: 'decimal', default: -1 },
+  CircleSize: { key: 'hp', type: 'decimal', default: -1 },
+  OverallDifficulty: { key: 'hp', type: 'decimal', default: -1 },
+  ApproachRate: { key: 'hp', type: 'decimal', default: -1 },
+  SliderMultiplier: { key: 'hp', type: 'decimal', default: -1 },
+  SliderTickRate: { key: 'hp', type: 'decimal', default: -1 },
 } as const
 
-const METADATA_KEY_MAP: KeyMap<Metadata> = {
+const METADATA_KEY_MAP: SectionKeyMap<Metadata> = {
   Title: { key: 'title', type: 'string' },
   TitleUnicode: { key: 'titleUnicode', type: 'string' },
   Artist: { key: 'artist', type: 'string' },
@@ -300,16 +192,23 @@ const parseKeyValuePairSection = <
   T extends Record<string, number | string | boolean>
 >(
   lines: string[],
-  keyMap: KeyMap<T>
+  sectionKeyMap: SectionKeyMap<T>
 ): T => {
   const section: Record<keyof T, number | string | boolean> = {} as Record<
     keyof T,
     number | string | boolean
   >
 
+  let key: keyof typeof sectionKeyMap
+  for (key in sectionKeyMap) {
+    const defaultValue = sectionKeyMap[key].default
+    if (defaultValue !== undefined)
+      section[sectionKeyMap[key].key] = defaultValue
+  }
+
   for (const line of lines) {
     const [key, value] = parseKeyValuePair(line)
-    const sectionKey = keyMap[key]
+    const sectionKey = sectionKeyMap[key]
 
     if (!sectionKey) throw new Error(`Unhandled key ${key}`)
 
@@ -334,7 +233,7 @@ const parseKeyValuePairSection = <
 
 const GAME_MODES = ['osu', 'taiko', 'catch', 'mania'] as const
 
-const parse = (data: string): Beatmap => {
+export const parse = (data: string): Beatmap => {
   const lines = data
     .split('\n')
     .filter((line) => {
@@ -384,28 +283,13 @@ const parse = (data: string): Beatmap => {
     hitObjects: sectionLines.HitObjects.map((line) => parseHitObject(line)),
   }
 
+  // Support old beatmaps where AR is not set
+  if (beatmapBase.difficulty.ar < 0) {
+    beatmapBase.difficulty.ar = beatmapBase.difficulty.od
+  }
+
   return {
     mode: GAME_MODES[beatmapBase.general.mode],
     ...beatmapBase,
   }
-}
-
-export {
-  General,
-  Metadata,
-  Difficulty,
-  BeatmapBase,
-  OsuBeatmap,
-  TaikoBeatmap,
-  ManiaBeatmap,
-  CatchBeatmap,
-  Beatmap,
-  TimingPoint,
-  CircleObject,
-  SliderCurve,
-  SliderObject,
-  SpinnerObject,
-  HoldObject,
-  HitObject,
-  parse,
 }
