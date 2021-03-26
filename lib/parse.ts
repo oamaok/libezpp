@@ -135,33 +135,46 @@ type SectionKeyMap<T> = Record<
 
 const GENERAL_KEY_MAP: SectionKeyMap<General> = {
   AudioFilename: { key: 'audioFilename', type: 'string' },
-  AudioLeadIn: { key: 'audioLeadIn', type: 'integer' },
-  PreviewTime: { key: 'previewTime', type: 'integer' },
-  Countdown: { key: 'countdown', type: 'integer' },
-  SampleSet: { key: 'sampleSet', type: 'string' },
-  StackLeniency: { key: 'stackLeniency', type: 'decimal' },
-  Mode: { key: 'mode', type: 'integer' },
-  LetterboxInBreaks: { key: 'letterboxInBreaks', type: 'boolean' },
-  UseSkinSprites: { key: 'useSkinSprites', type: 'boolean' },
-  OverlayPosition: { key: 'overlayPosition', type: 'string' },
-  SkinPreference: { key: 'skinPreference', type: 'string' },
-  EpilepsyWarning: { key: 'epilepsyWarning', type: 'boolean' },
-  CountdownOffset: { key: 'countdownOffset', type: 'integer' },
-  SpecialStyle: { key: 'specialStyle', type: 'boolean' },
-  WidescreenStoryboard: { key: 'widescreenStoryboard', type: 'boolean' },
+  AudioLeadIn: { key: 'audioLeadIn', type: 'integer', default: 0 },
+  PreviewTime: { key: 'previewTime', type: 'integer', default: -1 },
+  Countdown: { key: 'countdown', type: 'integer', default: 1 },
+  SampleSet: { key: 'sampleSet', type: 'string', default: 'Normal' },
+  StackLeniency: { key: 'stackLeniency', type: 'decimal', default: 0.7 },
+  Mode: { key: 'mode', type: 'integer', default: 0 },
+  LetterboxInBreaks: {
+    key: 'letterboxInBreaks',
+    type: 'boolean',
+    default: false,
+  },
+  UseSkinSprites: { key: 'useSkinSprites', type: 'boolean', default: false },
+  OverlayPosition: {
+    key: 'overlayPosition',
+    type: 'string',
+    default: 'NoChange',
+  },
+  SkinPreference: { key: 'skinPreference', type: 'string', default: '' },
+  EpilepsyWarning: { key: 'epilepsyWarning', type: 'boolean', default: false },
+  CountdownOffset: { key: 'countdownOffset', type: 'integer', default: 0 },
+  SpecialStyle: { key: 'specialStyle', type: 'boolean', default: false },
+  WidescreenStoryboard: {
+    key: 'widescreenStoryboard',
+    type: 'boolean',
+    default: false,
+  },
   SamplesMatchPlaybackRate: {
     key: 'samplesMatchPlaybackRate',
     type: 'boolean',
+    default: false,
   },
 }
 
 const DIFFICULTY_KEY_MAP: SectionKeyMap<Difficulty> = {
   HPDrainRate: { key: 'hp', type: 'decimal', default: -1 },
-  CircleSize: { key: 'hp', type: 'decimal', default: -1 },
-  OverallDifficulty: { key: 'hp', type: 'decimal', default: -1 },
-  ApproachRate: { key: 'hp', type: 'decimal', default: -1 },
-  SliderMultiplier: { key: 'hp', type: 'decimal', default: -1 },
-  SliderTickRate: { key: 'hp', type: 'decimal', default: -1 },
+  CircleSize: { key: 'cs', type: 'decimal', default: -1 },
+  OverallDifficulty: { key: 'od', type: 'decimal', default: -1 },
+  ApproachRate: { key: 'ar', type: 'decimal', default: -1 },
+  SliderMultiplier: { key: 'sliderMultiplier', type: 'decimal', default: -1 },
+  SliderTickRate: { key: 'sliderTickRate', type: 'decimal', default: -1 },
 } as const
 
 const METADATA_KEY_MAP: SectionKeyMap<Metadata> = {
@@ -199,8 +212,7 @@ const parseKeyValuePairSection = <
     number | string | boolean
   >
 
-  let key: keyof typeof sectionKeyMap
-  for (key in sectionKeyMap) {
+  for (const key in sectionKeyMap) {
     const defaultValue = sectionKeyMap[key].default
     if (defaultValue !== undefined)
       section[sectionKeyMap[key].key] = defaultValue
@@ -245,6 +257,7 @@ export const parse = (data: string): Beatmap => {
     .map((line) => line.trim())
 
   const [header] = lines.splice(0, 1)
+  const version = parseInt(header.replace(/[\d]+/g, ''))
 
   const sectionLines: Record<Exclude<Section, null>, string[]> = {
     General: [],
@@ -270,7 +283,7 @@ export const parse = (data: string): Beatmap => {
   }
 
   const beatmapBase: BeatmapBase = {
-    version: NaN,
+    version: version,
     general: parseKeyValuePairSection(sectionLines.General, GENERAL_KEY_MAP),
     metadata: parseKeyValuePairSection(sectionLines.Metadata, METADATA_KEY_MAP),
     difficulty: parseKeyValuePairSection(
@@ -290,6 +303,8 @@ export const parse = (data: string): Beatmap => {
 
   return {
     mode: GAME_MODES[beatmapBase.general.mode],
+    id: beatmapBase.metadata.id,
+    setId: beatmapBase.metadata.setId,
     ...beatmapBase,
   }
 }

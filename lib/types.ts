@@ -52,18 +52,26 @@ export type BeatmapBase = {
 
 export type OsuBeatmap = {
   mode: 'osu'
+  id: number
+  setId: number
 } & BeatmapBase
 
 export type TaikoBeatmap = {
   mode: 'taiko'
+  id: number
+  setId: number
 } & BeatmapBase
 
 export type ManiaBeatmap = {
   mode: 'mania'
+  id: number
+  setId: number
 } & BeatmapBase
 
 export type CatchBeatmap = {
   mode: 'catch'
+  id: number
+  setId: number
 } & BeatmapBase
 
 export type Beatmap = OsuBeatmap | TaikoBeatmap | ManiaBeatmap | CatchBeatmap
