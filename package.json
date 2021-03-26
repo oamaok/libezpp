@@ -5,8 +5,8 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "prepublish": "tsc",
-    "build": "tsc",
+    "prepublish": "yarn build",
+    "build": "rm -rf ./dist && tsc",
     "lint": "npx eslint . --ext .js,.ts",
     "test": "jest"
   },
