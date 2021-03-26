@@ -6,6 +6,7 @@
     "noImplicitThis": true,
     "preserveConstEnums": true,
     "strictFunctionTypes": true,
-    "strictNullChecks": true
+    "strictNullChecks": true,
+    "moduleResolution": "node"
   }
 }
