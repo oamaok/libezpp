@@ -1,5 +1,7 @@
 {
   "compilerOptions": {
+    "outDir": "dist",
+    "declaration": true,
     "esModuleInterop": true,
     "module": "commonjs",
     "noImplicitAny": true,
@@ -8,5 +10,6 @@
     "strictFunctionTypes": true,
     "strictNullChecks": true,
     "moduleResolution": "node"
-  }
+  },
+  "files": ["lib/index.ts"]
 }
