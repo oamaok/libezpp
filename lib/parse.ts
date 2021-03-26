@@ -191,7 +191,6 @@ const METADATA_KEY_MAP: SectionKeyMap<Metadata> = {
 } as const
 
 type Section =
-  | null
   | 'General'
   | 'Editor'
   | 'Metadata'
@@ -259,7 +258,7 @@ export const parse = (data: string): Beatmap => {
   const [header] = lines.splice(0, 1)
   const version = parseInt(header.replace(/[\d]+/g, ''))
 
-  const sectionLines: Record<Exclude<Section, null>, string[]> = {
+  const sectionLines: Record<Section, string[]> = {
     General: [],
     Editor: [],
     Metadata: [],
@@ -270,7 +269,7 @@ export const parse = (data: string): Beatmap => {
     HitObjects: [],
   }
 
-  let section: Section = null
+  let section: Section | null = null
   for (const line of lines) {
     if (line.startsWith('[')) {
       section = line.substr(1, line.length - 2) as Section
