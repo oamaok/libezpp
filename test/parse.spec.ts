@@ -1,15 +1,19 @@
-import { General, Metadata, Difficulty } from '../lib/types'
+import { Beatmap, General, Metadata, Difficulty } from '../lib/types'
 import { parse } from '../lib/parse'
 import * as fs from 'fs'
 import * as path from 'path'
 
+const MANUAL_TEST_FILES: string[] = []
+
 const testMapDirectory = path.resolve(__dirname, 'data/maps')
-const testMaps = fs
-  .readdirSync(testMapDirectory)
+const files = fs.readdirSync(testMapDirectory)
+const testMaps = (MANUAL_TEST_FILES.length ? MANUAL_TEST_FILES : files)
   .filter((file) => file.endsWith('.osu'))
   .map((file) => ({
     file,
-    content: fs.readFileSync(path.resolve(testMapDirectory, file)).toString(),
+    content: fs
+      .readFileSync(path.resolve(testMapDirectory, file))
+      .toString('utf-8'),
   }))
 
 const GENERAL_FIELDS: (keyof General)[] = [
@@ -54,53 +58,36 @@ const DIFFICULTY_FIELDS: (keyof Difficulty)[] = [
 ]
 
 describe('parse', () => {
-  it('should properly parse all valid test maps', () => {
+  it('should return all beatmap fields as defined', () => {
     for (const map of testMaps) {
-      const beatmap = parse(map.content)
-      expect(beatmap).toBeDefined()
-    }
-  })
-
-  it('should return beatmap.version as defined', () => {
-    for (const map of testMaps) {
-      const beatmap = parse(map.content)
-      if (typeof beatmap.version === 'undefined') {
-        throw new Error(`undefined version on beatmap ${map.file}`)
+      let beatmap: Beatmap
+      try {
+        beatmap = parse(map.content)
+      } catch (err) {
+        throw new Error(
+          `Failed with beatmap "${map.file}": ${err.message}\n${err.stack}`
+        )
       }
-    }
-  })
 
-  it('should return all fields of beatmap.general as defined', () => {
-    for (const map of testMaps) {
-      const beatmap = parse(map.content)
+      if (typeof beatmap.version === 'undefined') {
+        throw new Error(`undefined version on beatmap "${map.file}"`)
+      }
 
       for (const key of GENERAL_FIELDS) {
         if (typeof beatmap.general[key] === 'undefined') {
-          throw new Error(`undefined key ${key} on beatmap ${map.file}`)
+          throw new Error(`undefined key ${key} on beatmap "${map.file}"`)
         }
       }
-    }
-  })
-
-  it('should return all fields of beatmap.metadata as defined', () => {
-    for (const map of testMaps) {
-      const beatmap = parse(map.content)
 
       for (const key of METADATA_FIELDS) {
         if (typeof beatmap.metadata[key] === 'undefined') {
-          throw new Error(`undefined key ${key} on beatmap ${map.file}`)
+          throw new Error(`undefined key ${key} on beatmap "${map.file}"`)
         }
       }
-    }
-  })
-
-  it('should return all fields of beatmap.difficulty as defined', () => {
-    for (const map of testMaps) {
-      const beatmap = parse(map.content)
 
       for (const key of DIFFICULTY_FIELDS) {
         if (typeof beatmap.difficulty[key] === 'undefined') {
-          throw new Error(`undefined key ${key} on beatmap ${map.file}`)
+          throw new Error(`undefined key ${key} on beatmap "${map.file}"`)
         }
       }
     }
