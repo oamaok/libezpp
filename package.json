@@ -2,9 +2,11 @@
   "name": "ezpp",
   "version": "1.0.0",
   "description": "osu! performance point calculation library used by ezpp!",
-  "main": "lib/index.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
-    "build": "echo not yet implemented",
+    "prepublish": "yarn build",
+    "build": "rm -rf ./dist && tsc",
     "lint": "npx eslint . --ext .js,.ts",
     "test": "jest"
   },
@@ -23,5 +25,7 @@
     "prettier": "^2.2.1",
     "ts-jest": "^26.5.4",
     "typescript": "^4.2.3"
-  }
+  },
+  "author": "Teemu Pääkkönen <oamaok@gmail.com> https://github.com/oamaok/libezpp/issues"
+
 }
