@@ -80,8 +80,8 @@ const parseHitObject = (line: string): HitObject => {
     }
 
     case HOLD_OBJECT_BIT: {
-      throw new Error('HOLD_OBJECT_BIT: unimplemented')
-      // return { type: 'hold', time: parseInt(time), position }
+      // TODO(teemu): Implement this properly
+      return { type: 'hold', time: parseInt(time), position }
     }
 
     default:
@@ -179,15 +179,15 @@ const DIFFICULTY_KEY_MAP: SectionKeyMap<Difficulty> = {
 
 const METADATA_KEY_MAP: SectionKeyMap<Metadata> = {
   Title: { key: 'title', type: 'string' },
-  TitleUnicode: { key: 'titleUnicode', type: 'string' },
+  TitleUnicode: { key: 'titleUnicode', type: 'string', default: '' },
   Artist: { key: 'artist', type: 'string' },
-  ArtistUnicode: { key: 'artistUnicode', type: 'string' },
+  ArtistUnicode: { key: 'artistUnicode', type: 'string', default: '' },
   Creator: { key: 'creator', type: 'string' },
   Version: { key: 'version', type: 'string' },
-  Source: { key: 'source', type: 'string' },
-  Tags: { key: 'tags', type: 'string' },
-  BeatmapID: { key: 'id', type: 'integer' },
-  BeatmapSetID: { key: 'setId', type: 'integer' },
+  Source: { key: 'source', type: 'string', default: '' },
+  Tags: { key: 'tags', type: 'string', default: '' },
+  BeatmapID: { key: 'id', type: 'integer', default: -1 },
+  BeatmapSetID: { key: 'setId', type: 'integer', default: -1 },
 } as const
 
 type Section =
@@ -221,7 +221,10 @@ const parseKeyValuePairSection = <
     const [key, value] = parseKeyValuePair(line)
     const sectionKey = sectionKeyMap[key]
 
-    if (!sectionKey) throw new Error(`Unhandled key ${key}`)
+    if (!sectionKey) {
+      // TODO(teemu): This should probably throw something
+      continue
+    }
 
     switch (sectionKey.type) {
       case 'integer':
@@ -244,6 +247,10 @@ const parseKeyValuePairSection = <
 
 const GAME_MODES = ['osu', 'taiko', 'catch', 'mania'] as const
 
+const isKeyOf = <T>(obj: T, key: string | number | symbol): key is keyof T => {
+  return key in obj
+}
+
 export const parse = (data: string): Beatmap => {
   const lines = data
     .split('\n')
@@ -255,8 +262,11 @@ export const parse = (data: string): Beatmap => {
     })
     .map((line) => line.trim())
 
-  const [header] = lines.splice(0, 1)
-  const version = parseInt(header.replace(/[\d]+/g, ''))
+  let version: number = 1
+  if (lines[0].startsWith('osu file format v')) {
+    const [header] = lines.splice(0, 1)
+    version = parseInt(header.replace(/[\d]+/g, ''))
+  }
 
   const sectionLines: Record<Section, string[]> = {
     General: [],
@@ -269,20 +279,21 @@ export const parse = (data: string): Beatmap => {
     HitObjects: [],
   }
 
-  let section: Section | null = null
+  let section: string | null = null
   for (const line of lines) {
     if (line.startsWith('[')) {
-      section = line.substr(1, line.length - 2) as Section
+      section = line.substr(1, line.length - 2)
       continue
     }
 
     if (!section) continue
+    if (!isKeyOf(sectionLines, section)) continue
 
     sectionLines[section].push(line)
   }
 
   const beatmapBase: BeatmapBase = {
-    version: version,
+    version,
     general: parseKeyValuePairSection(sectionLines.General, GENERAL_KEY_MAP),
     metadata: parseKeyValuePairSection(sectionLines.Metadata, METADATA_KEY_MAP),
     difficulty: parseKeyValuePairSection(
