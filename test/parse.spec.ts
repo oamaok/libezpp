@@ -7,14 +7,10 @@ const MANUAL_TEST_FILES: string[] = []
 
 const testMapDirectory = path.resolve(__dirname, 'data/maps')
 const files = fs.readdirSync(testMapDirectory)
-const testMaps = (MANUAL_TEST_FILES.length ? MANUAL_TEST_FILES : files)
-  .filter((file) => file.endsWith('.osu'))
-  .map((file) => ({
-    file,
-    content: fs
-      .readFileSync(path.resolve(testMapDirectory, file))
-      .toString('utf-8'),
-  }))
+const testMaps = (MANUAL_TEST_FILES.length
+  ? MANUAL_TEST_FILES
+  : files
+).filter((file) => file.endsWith('.osu'))
 
 const GENERAL_FIELDS: (keyof General)[] = [
   'audioFilename',
@@ -62,32 +58,34 @@ describe('parse', () => {
     for (const map of testMaps) {
       let beatmap: Beatmap
       try {
-        beatmap = parse(map.content)
+        beatmap = parse(
+          fs.readFileSync(path.resolve(testMapDirectory, map)).toString('utf-8')
+        )
       } catch (err) {
         throw new Error(
-          `Failed with beatmap "${map.file}": ${err.message}\n${err.stack}`
+          `Failed with beatmap "${map}": ${err.message}\n${err.stack}`
         )
       }
 
       if (typeof beatmap.version === 'undefined') {
-        throw new Error(`undefined version on beatmap "${map.file}"`)
+        throw new Error(`undefined version on beatmap "${map}"`)
       }
 
       for (const key of GENERAL_FIELDS) {
         if (typeof beatmap.general[key] === 'undefined') {
-          throw new Error(`undefined key ${key} on beatmap "${map.file}"`)
+          throw new Error(`undefined key ${key} on beatmap "${map}"`)
         }
       }
 
       for (const key of METADATA_FIELDS) {
         if (typeof beatmap.metadata[key] === 'undefined') {
-          throw new Error(`undefined key ${key} on beatmap "${map.file}"`)
+          throw new Error(`undefined key ${key} on beatmap "${map}"`)
         }
       }
 
       for (const key of DIFFICULTY_FIELDS) {
         if (typeof beatmap.difficulty[key] === 'undefined') {
-          throw new Error(`undefined key ${key} on beatmap "${map.file}"`)
+          throw new Error(`undefined key ${key} on beatmap "${map}"`)
         }
       }
     }
