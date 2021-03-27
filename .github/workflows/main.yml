@@ -17,9 +17,11 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: '14.15.4'
-      - name: Install packages and run linter
+      - name: Install packages
         run: |
           yarn install
+      - name: Run linter
+        run: |
           yarn lint
   test:
     runs-on: ubuntu-latest
@@ -29,10 +31,14 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: '14.15.4'
-      - name: Install packages and run tests
+      - name: Install packages
         run: |
           yarn install
+      - name: Extract test 
+        run: |
           yarn extract-test-data
+      - name: Run tests
+        rune: |
           yarn test
   build:
     runs-on: ubuntu-latest
@@ -42,7 +48,9 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: '14.15.4'
-      - name: Install packages and builds the package
+      - name: Install packages
         run: |
           yarn install
+      - name: Build package
+        run: |
           yarn build
