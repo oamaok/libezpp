@@ -8,6 +8,7 @@
     "prepublish": "yarn build",
     "build": "rm -rf ./dist && tsc",
     "lint": "npx eslint . --ext .js,.ts",
+    "extract-test-data": "git lfs pull && cd test/data/ && tar -xzf maps.tar.gz",
     "test": "jest"
   },
   "repository": "https://github.com/oamaok/libezpp",
@@ -27,5 +28,4 @@
     "typescript": "^4.2.3"
   },
   "author": "Teemu Pääkkönen <oamaok@gmail.com> https://github.com/oamaok/libezpp/issues"
-
 }
