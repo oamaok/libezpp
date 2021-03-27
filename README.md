@@ -11,7 +11,7 @@ yarn install
 
 ## Testing
 
-The test beatmap dataset is stored using [Git LargeFileStorage](https://git-lfs.github.com/). Download and extract the test beatmap dataset by running:
+The test beatmap dataset is stored using [Git Large File Storage](https://git-lfs.github.com/). Download and extract the test beatmap dataset by running (this only needs to be done once):
 ```
 yarn extract-test-data
 ```
@@ -22,7 +22,7 @@ cd test/data/
 tar -xzf maps.tar.gz
 ```
 
-This only needs to be done once. Once the dataset is extracted, you can test your changes by running:
+Once the dataset is extracted, you can test your changes by running:
 ```
 yarn test
 ```
