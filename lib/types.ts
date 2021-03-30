@@ -32,7 +32,7 @@ export type Metadata = Readonly<{
   setId: number
 }>
 
-export type Difficulty = {
+export type Stats = {
   hp: number
   cs: number
   od: number
@@ -45,7 +45,7 @@ export type BeatmapBase = Readonly<{
   version: number
   general: General
   metadata: Metadata
-  difficulty: Difficulty
+  stats: Stats
   timingPoints: TimingPoint[]
   hitObjects: HitObject[]
 }>
@@ -54,6 +54,7 @@ export type OsuBeatmap = Readonly<{
   mode: 'osu'
   id: number
   setId: number
+  objectCounts: ObjectCounts
 }> &
   BeatmapBase
 
@@ -61,6 +62,7 @@ export type TaikoBeatmap = Readonly<{
   mode: 'taiko'
   id: number
   setId: number
+  objectCounts: ObjectCounts
 }> &
   BeatmapBase
 
@@ -68,6 +70,7 @@ export type ManiaBeatmap = Readonly<{
   mode: 'mania'
   id: number
   setId: number
+  objectCounts: ObjectCounts
 }> &
   BeatmapBase
 
@@ -75,6 +78,7 @@ export type CatchBeatmap = Readonly<{
   mode: 'catch'
   id: number
   setId: number
+  objectCounts: ObjectCounts
 }> &
   BeatmapBase
 
@@ -87,7 +91,7 @@ export type TimingPoint = Readonly<{
   sampleSet: number
   sampleIndex: number
   volume: number
-  uninherited: boolean
+  inherited: boolean
   effects: number
 }>
 
@@ -101,7 +105,7 @@ export type CircleObject = Readonly<{
 export type SliderCurve = Readonly<{
   type: 'B' | 'C' | 'L' | 'P'
   points: Vec2[]
-  slides: number
+  repetitions: number
   length: number
   edgeSounds: number[]
   edgeSets: string[]
@@ -117,7 +121,6 @@ export type SliderObject = Readonly<{
 
 export type SpinnerObject = Readonly<{
   type: 'spinner'
-  position: Vec2
   hitSample: string
   time: number
   endTime: number
@@ -129,4 +132,29 @@ export type HoldObject = Readonly<{
   time: number
 }>
 
-export type HitObject = CircleObject | SliderObject | SpinnerObject | HoldObject
+export type InvalidObject = Readonly<{
+  type: 'invalid'
+}>
+
+export type HitObject =
+  | CircleObject
+  | SliderObject
+  | SpinnerObject
+  | HoldObject
+  | InvalidObject
+
+export type CalculationOptions = {
+  mods: number
+  accuracy: number
+  misses: number
+  combo: number
+}
+
+export type ObjectCounts = {
+  circles: number
+  sliders: number
+  spinners: number
+  holds: number
+}
+
+export type ModBits = number

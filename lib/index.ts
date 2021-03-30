@@ -17,9 +17,11 @@ export {
   HitObject,
 } from './types'
 import { parse } from './parse'
+import { calculate } from './calculate'
 
 const ezpp = {
   parse,
+  calculate,
 } as const
 
 export { ezpp, parse }
