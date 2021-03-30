@@ -1,12 +1,14 @@
 import {
   General,
   Metadata,
-  Difficulty,
+  Stats,
   BeatmapBase,
   Beatmap,
   TimingPoint,
   SliderCurve,
   HitObject,
+  ObjectCounts,
+  SliderObject,
 } from './types'
 import { Vec2 } from './vec2'
 
@@ -22,15 +24,14 @@ const DEFAULT_HIT_SAMPLE = '0:0:0:0:'
 
 const parseCurvePoint = (curvePoint: string): Vec2 => {
   const [x, y] = curvePoint.split(':')
-  return { x: parseInt(x), y: parseInt(y) }
+  return new Vec2(parseInt(x), parseInt(y))
 }
 
 const parseHitObject = (line: string): HitObject => {
   const [x, y, time, objectType, hitSound, ...objectParameters] = line.split(
     ','
   )
-  const position: Vec2 = { x: parseInt(x), y: parseInt(y) }
-  const hitSample = objectParameters.pop() || DEFAULT_HIT_SAMPLE
+  const position: Vec2 = new Vec2(parseInt(x.trim()), parseInt(y.trim()))
 
   switch (parseInt(objectType) & OBJECT_BITS) {
     case CIRCLE_OBJECT_BIT: {
@@ -38,34 +39,43 @@ const parseHitObject = (line: string): HitObject => {
         type: 'circle',
         time: parseInt(time),
         position,
-        hitSample,
+        hitSample: DEFAULT_HIT_SAMPLE,
       }
     }
 
     case SLIDER_OBJECT_BIT: {
       const [
         curve,
-        slides,
-        length = '',
+        repetitions = '1',
+        length = '0.0',
         edgeSounds = '',
         edgeSets = '',
       ] = objectParameters
       const [curveType, ...curvePoints] = curve.split('|')
 
-      return {
+      const slider: SliderObject = {
         type: 'slider',
         time: parseInt(time),
         position,
-        hitSample,
+        hitSample: DEFAULT_HIT_SAMPLE,
         curve: {
           type: curveType as SliderCurve['type'],
           points: curvePoints.map(parseCurvePoint),
-          slides: parseInt(slides),
-          length: parseFloat(length),
-          edgeSounds: edgeSounds.split('|').map((sound) => parseInt(sound)),
-          edgeSets: edgeSets.split('|'),
+          repetitions: parseInt(repetitions.trim()),
+          length: parseFloat(length.trim()),
+          edgeSounds: edgeSounds
+            .trim()
+            .split('|')
+            .map((sound) => parseInt(sound)),
+          edgeSets: edgeSets.trim().split('|'),
         },
       }
+
+      if (isNaN(slider.curve.repetitions) || isNaN(slider.curve.length)) {
+        return { type: 'invalid' }
+      }
+
+      return slider
     }
 
     case SPINNER_OBJECT_BIT: {
@@ -73,8 +83,7 @@ const parseHitObject = (line: string): HitObject => {
       return {
         type: 'spinner',
         time: parseInt(time),
-        position,
-        hitSample,
+        hitSample: DEFAULT_HIT_SAMPLE,
         endTime: parseInt(endTime),
       }
     }
@@ -108,7 +117,7 @@ const parseTimingPoint = (line: string): TimingPoint => {
     sampleSet: parseInt(sampleSet),
     sampleIndex: parseInt(sampleIndex),
     volume: parseInt(volume),
-    uninherited: uninherited === '1',
+    inherited: uninherited === '0',
     effects: parseInt(effects),
   }
 }
@@ -168,13 +177,13 @@ const GENERAL_KEY_MAP: SectionKeyMap<General> = {
   },
 }
 
-const DIFFICULTY_KEY_MAP: SectionKeyMap<Difficulty> = {
+const DIFFICULTY_KEY_MAP: SectionKeyMap<Stats> = {
   HPDrainRate: { key: 'hp', type: 'decimal', default: -1 },
   CircleSize: { key: 'cs', type: 'decimal', default: -1 },
   OverallDifficulty: { key: 'od', type: 'decimal', default: -1 },
   ApproachRate: { key: 'ar', type: 'decimal', default: -1 },
-  SliderMultiplier: { key: 'sliderMultiplier', type: 'decimal', default: -1 },
-  SliderTickRate: { key: 'sliderTickRate', type: 'decimal', default: -1 },
+  SliderMultiplier: { key: 'sliderMultiplier', type: 'decimal', default: 1.0 },
+  SliderTickRate: { key: 'sliderTickRate', type: 'decimal', default: 1.0 },
 } as const
 
 const METADATA_KEY_MAP: SectionKeyMap<Metadata> = {
@@ -251,6 +260,22 @@ const isKeyOf = <T>(obj: T, key: string | number | symbol): key is keyof T => {
   return key in obj
 }
 
+const getObjectCounts = (hitObjects: HitObject[]): ObjectCounts =>
+  hitObjects.reduce(
+    (counts: ObjectCounts, hitObject: HitObject) => ({
+      circles: counts.circles + +(hitObject.type === 'circle'),
+      sliders: counts.sliders + +(hitObject.type === 'slider'),
+      spinners: counts.spinners + +(hitObject.type === 'spinner'),
+      holds: counts.holds + +(hitObject.type === 'hold'),
+    }),
+    {
+      circles: 0,
+      sliders: 0,
+      spinners: 0,
+      holds: 0,
+    }
+  )
+
 export const parse = (data: string): Beatmap => {
   const lines = data
     .split('\n')
@@ -265,7 +290,7 @@ export const parse = (data: string): Beatmap => {
   let version: number = 1
   if (lines[0].startsWith('osu file format v')) {
     const [header] = lines.splice(0, 1)
-    version = parseInt(header.replace(/[\d]+/g, ''))
+    version = parseInt(header.replace(/[^\d]+/g, ''))
   }
 
   const sectionLines: Record<Section, string[]> = {
@@ -296,7 +321,7 @@ export const parse = (data: string): Beatmap => {
     version,
     general: parseKeyValuePairSection(sectionLines.General, GENERAL_KEY_MAP),
     metadata: parseKeyValuePairSection(sectionLines.Metadata, METADATA_KEY_MAP),
-    difficulty: parseKeyValuePairSection(
+    stats: parseKeyValuePairSection(
       sectionLines.Difficulty,
       DIFFICULTY_KEY_MAP
     ),
@@ -307,14 +332,15 @@ export const parse = (data: string): Beatmap => {
   }
 
   // Support old beatmaps where AR is not set
-  if (beatmapBase.difficulty.ar < 0) {
-    beatmapBase.difficulty.ar = beatmapBase.difficulty.od
+  if (beatmapBase.stats.ar < 0) {
+    beatmapBase.stats.ar = beatmapBase.stats.od
   }
 
   return {
     mode: GAME_MODES[beatmapBase.general.mode],
     id: beatmapBase.metadata.id,
     setId: beatmapBase.metadata.setId,
+    objectCounts: getObjectCounts(beatmapBase.hitObjects),
     ...beatmapBase,
   }
 }

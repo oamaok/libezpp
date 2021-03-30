@@ -1,9 +1,12 @@
-import { Beatmap, General, Metadata, Difficulty } from '../lib/types'
+import { Beatmap, General, Metadata, Stats } from '../lib/types'
+import { calculateMaximumCombo } from '../lib/calculators/standard'
 import { parse } from '../lib/parse'
 import * as fs from 'fs'
 import * as path from 'path'
 
-const MANUAL_TEST_FILES: string[] = []
+const MANUAL_TEST_FILES: string[] = [
+  'xi - FREEDOM DiVE (Nakagawa-Kanon) [FOUR DIMENSIONS].osu',
+]
 
 const testMapDirectory = path.resolve(__dirname, 'data/maps')
 const files = fs.readdirSync(testMapDirectory)
@@ -44,7 +47,7 @@ const METADATA_FIELDS: (keyof Metadata)[] = [
   'setId',
 ]
 
-const DIFFICULTY_FIELDS: (keyof Difficulty)[] = [
+const STATS_FIELDS: (keyof Stats)[] = [
   'hp',
   'cs',
   'od',
@@ -67,25 +70,49 @@ describe('parse', () => {
         )
       }
 
+      if (beatmap.mode === 'osu') {
+        console.log(calculateMaximumCombo(beatmap))
+      }
+
       if (typeof beatmap.version === 'undefined') {
         throw new Error(`undefined version on beatmap "${map}"`)
       }
 
+      if (isNaN(beatmap.version)) {
+        throw new Error(`beatmap version is NaN on "${map}"`)
+      }
+
       for (const key of GENERAL_FIELDS) {
-        if (typeof beatmap.general[key] === 'undefined') {
+        const value = beatmap.general[key]
+
+        if (typeof value === 'undefined') {
           throw new Error(`undefined key ${key} on beatmap "${map}"`)
+        }
+
+        if (typeof value === 'number' && isNaN(value)) {
+          throw new Error(`NaN value at key ${key} on beatmap "${map}"`)
         }
       }
 
       for (const key of METADATA_FIELDS) {
-        if (typeof beatmap.metadata[key] === 'undefined') {
+        const value = beatmap.metadata[key]
+
+        if (typeof value === 'undefined') {
           throw new Error(`undefined key ${key} on beatmap "${map}"`)
+        }
+
+        if (typeof value === 'number' && isNaN(value)) {
+          throw new Error(`NaN value at key ${key} on beatmap "${map}"`)
         }
       }
 
-      for (const key of DIFFICULTY_FIELDS) {
-        if (typeof beatmap.difficulty[key] === 'undefined') {
+      for (const key of STATS_FIELDS) {
+        if (typeof beatmap.stats[key] === 'undefined') {
           throw new Error(`undefined key ${key} on beatmap "${map}"`)
+        }
+
+        if (isNaN(beatmap.stats[key])) {
+          throw new Error(`NaN value at key ${key} on beatmap "${map}"`)
         }
       }
     }
